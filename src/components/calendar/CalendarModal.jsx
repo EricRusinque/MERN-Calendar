@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Modal from 'react-modal';
 import DateTimePicker from 'react-datetime-picker';
 import moment from 'moment';
 
 
 import Swal from 'sweetalert2'
+import { useDispatch, useSelector } from 'react-redux';
+import { uiCloseModal } from '../../actions/ui';
+import { eventAddNew, eventClearActiveEvent, eventUpdated } from '../../actions/events';
  
 const customStyles = {
     content: {
@@ -18,9 +21,15 @@ const customStyles = {
 };
 Modal.setAppElement('#root');
 
-const now = moment().minute(0).seconds(0).add(1,'hours')
-
+const now = moment().minute(0).seconds(0).add(1,'hours');
 const nowPlus =  now.clone().add(1, 'hours');
+
+const initEvent = {
+    title: '',
+    notes: '',
+    start: now.toDate(),
+    end: nowPlus.toDate(),
+}
 
 export const CalendarModal = () => {
 
@@ -28,16 +37,24 @@ export const CalendarModal = () => {
     const [dateEnd, setDateEnd] = useState(nowPlus.toDate());
     const [titleValid, setTitleValid] = useState(true);
 
+    const { modalOpen } = useSelector( store => store.ui);
+    const { activeEvent } = useSelector( store => store.calendar);
 
-    const [formValues, setFormValues] = useState({
-        title: 'Evento',
-        notes: '',
-        start: now.toDate(),
-        end: nowPlus.toDate()
-    });
+    const  dispatch = useDispatch();
+
+    const [formValues, setFormValues] = useState(initEvent);
 
 
     const { notes, title, start, end } = formValues;
+
+    useEffect(() => {
+        if( activeEvent ) {
+            setFormValues(activeEvent)
+        } else {
+            setFormValues( initEvent )
+        }
+    }, [activeEvent]);
+    
 
     const handleInputChange = ({target}) => {
         setFormValues({
@@ -45,8 +62,11 @@ export const CalendarModal = () => {
             [target.name]:target.value
         })
     }
+
     const closeModal = () => {
-        // todo cerrar el modal
+        dispatch( uiCloseModal() );
+        dispatch( eventClearActiveEvent() );
+        setFormValues( initEvent );
     }
 
     const handleStartDateChange = (e) => {
@@ -69,8 +89,7 @@ export const CalendarModal = () => {
         const momentStart = moment( start );
         const momentEnd = moment( end );
 
-        console.log(momentStart);
-        if( momentStart.isSameOrAfter(momentEnd) ){
+        if( momentStart.isSameOrAfter( momentEnd ) ){
             return Swal.fire('Error','La fecha fin debe de ser mayor a la fecha de inicio','e');
         }  
         if( title.trim().length <2 ) {
@@ -78,20 +97,33 @@ export const CalendarModal = () => {
         }
         // TODO: Realizar grabacion
 
+        if( activeEvent ) {
+            dispatch(eventUpdated( formValues ) );
+        } else {
+            dispatch( eventAddNew({
+                ...formValues,
+                id: new Date().getTime(),
+                user:{
+                    _id: '123',
+                    name: 'Eric'
+                }
+            }) );
+        }
+
         setTitleValid(true);
         closeModal();
     }
     
     return (
         <Modal
-            isOpen={true}
-            onRequestClose={closeModal}
-            style={customStyles}
-            closeTimeoutMS={200}
+            isOpen={ modalOpen }
+            onRequestClose={ closeModal }
+            style={ customStyles }
+            closeTimeoutMS={ 200 } 
             className="modal"
             overlayClassName="modal-fondo"
         >
-            <h1> Nuevo evento </h1>
+            <h1>{(activeEvent) ? 'Edit event' : 'New event'} </h1>
             <hr />
             <form 
                 className="container"
@@ -99,7 +131,7 @@ export const CalendarModal = () => {
             >
 
                 <div className="form-group">
-                    <label>Fecha y hora inicio</label>
+                    <label>Start date and time</label>
                     <DateTimePicker
                         onChange={ handleStartDateChange }
                         value={dateStart}
@@ -108,7 +140,7 @@ export const CalendarModal = () => {
                 </div>
 
                 <div className="form-group">
-                    <label>Fecha y hora fin</label>
+                    <label>End date and time</label>
                     <DateTimePicker
                         onChange={ handleEndDateChange }
                         value={dateEnd}
@@ -119,7 +151,7 @@ export const CalendarModal = () => {
 
                 <hr />
                 <div className="form-group">
-                    <label>Titulo y notas</label>
+                    <label>Title and notes</label>
                     <input
                         type="text"
                         className={`form-control ${!titleValid && 'is-invalid'}`}
@@ -129,7 +161,7 @@ export const CalendarModal = () => {
                         onChange={ handleInputChange  }
                         autoComplete="off"
                     />
-                    <small id="emailHelp" className="form-text text-muted">Una descripción corta</small>
+                    <small id="emailHelp" className="form-text text-muted">A short description.</small>
                 </div>
 
                 <div className="form-group">
@@ -150,7 +182,7 @@ export const CalendarModal = () => {
                     className="btn btn-outline-primary btn-block"
                 >
                     <i className="far fa-save"></i>
-                    <span> Guardar</span>
+                    <span> Save</span>
                 </button>
 
             </form>

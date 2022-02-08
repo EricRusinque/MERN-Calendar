@@ -1,41 +1,45 @@
 import React from 'react';
 import { NavBar } from '../ui/NavBar';
 import { Calendar, momentLocalizer } from 'react-big-calendar'
-import { messages } from '../../helpers/calendar-messages';
 import { CalendarEvent } from './CalendarEvent';
 import { useState } from 'react';
 import { CalendarModal } from './CalendarModal';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'moment/locale/es'
+import { useDispatch } from 'react-redux';
+import { uiOpenModal } from '../../actions/ui';
+import { eventClearActiveEvent, eventSetActive } from '../../actions/events';
+import { AddNewFab } from '../ui/AddNewFab';
+import { useSelector } from 'react-redux';
+import { DeleteEventFab } from '../ui/DeleteEventFab';
+
+
 
 moment.locale('es');
 
 const localizer = momentLocalizer(moment);
 
-const events =[{
-    title: 'Cumpleanos del Jefe',
-    start: moment().toDate(),
-    end: moment().add(2, 'hours').toDate(),
-    bgcolor: '#fafafa',
-    notes: 'buy cake',
-    user: {
-        _id: '123',
-        name: 'Eric'
-    }
-    
-}]
 
-export const CalendarScreen = () => {
+export const CalendarScreen = (  ) => {
 
+    const dispatch = useDispatch();
+    const  { events, activeEvent }  = useSelector(state => state.calendar);
     const [lastView, setLastView] = useState( localStorage.getItem('lastView') || 'month');
 
+    // TODO: leer del store los eventos
+
+    console.log();
+
     const onDoubleClick = (e) => {
+        dispatch( uiOpenModal() );
     }
     const onSelectEvent = (e) => {
+        dispatch( eventSetActive( e ) ); 
     }
 
     const onViewChange = (e) => {
+        setLastView(e)
         localStorage.setItem('lastView', e)
     }
 
@@ -50,7 +54,11 @@ export const CalendarScreen = () => {
         return {
             style
         }
-    };
+    }
+
+    const onSelectSlot = () => {
+        dispatch( eventClearActiveEvent() );
+    }
 
     return (
         <div className="calendar-screen">
@@ -64,12 +72,17 @@ export const CalendarScreen = () => {
                 eventPropGetter={ eventStylesGetter }
                 onDoubleClickEvent={onDoubleClick}
                 onSelectEvent={ onSelectEvent }
+                onSelectSlot={ onSelectSlot }
                 onView={ onViewChange }
                 view={ lastView }
                 components={{
                     event: CalendarEvent
                 }}
             />
+            {
+                (activeEvent) && <DeleteEventFab/>
+            }
+            <AddNewFab/>
             <CalendarModal/>
         </div>
     );

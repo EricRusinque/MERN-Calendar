@@ -7,7 +7,7 @@ import moment from 'moment';
 import Swal from 'sweetalert2'
 import { useDispatch, useSelector } from 'react-redux';
 import { uiCloseModal } from '../../actions/ui';
-import { eventAddNew, eventClearActiveEvent, eventUpdated } from '../../actions/events';
+import { eventClearActiveEvent, eventStartAddNew, eventStartUpdate } from '../../actions/events';
  
 const customStyles = {
     content: {
@@ -22,25 +22,26 @@ const customStyles = {
 Modal.setAppElement('#root');
 
 const now = moment().minute(0).seconds(0).add(1,'hours');
-const nowPlus =  now.clone().add(1, 'hours');
+const nowPlus1 =  now.clone().add(1, 'hours');
 
 const initEvent = {
     title: '',
     notes: '',
     start: now.toDate(),
-    end: nowPlus.toDate(),
+    end: nowPlus1.toDate(),
 }
 
 export const CalendarModal = () => {
 
+    const  dispatch = useDispatch();
+
     const [dateStart, setDateStart] = useState(now.toDate());
-    const [dateEnd, setDateEnd] = useState(nowPlus.toDate());
+    const [dateEnd, setDateEnd] = useState(nowPlus1.toDate());
     const [titleValid, setTitleValid] = useState(true);
 
     const { modalOpen } = useSelector( store => store.ui);
     const { activeEvent } = useSelector( store => store.calendar);
 
-    const  dispatch = useDispatch();
 
     const [formValues, setFormValues] = useState(initEvent);
 
@@ -49,18 +50,18 @@ export const CalendarModal = () => {
 
     useEffect(() => {
         if( activeEvent ) {
-            setFormValues(activeEvent)
+            setFormValues( activeEvent );
         } else {
-            setFormValues( initEvent )
+            setFormValues( initEvent );
         }
     }, [activeEvent]);
     
 
-    const handleInputChange = ({target}) => {
+    const handleInputChange = ({ target }) => {
         setFormValues({
             ...formValues,
             [target.name]:target.value
-        })
+        });
     }
 
     const closeModal = () => {
@@ -98,16 +99,9 @@ export const CalendarModal = () => {
         // TODO: Realizar grabacion
 
         if( activeEvent ) {
-            dispatch(eventUpdated( formValues ) );
+            dispatch( eventStartUpdate( formValues ) );
         } else {
-            dispatch( eventAddNew({
-                ...formValues,
-                id: new Date().getTime(),
-                user:{
-                    _id: '123',
-                    name: 'Eric'
-                }
-            }) );
+            dispatch( eventStartAddNew( formValues ) );
         }
 
         setTitleValid(true);
